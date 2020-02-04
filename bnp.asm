@@ -1374,6 +1374,7 @@ BounceDir:  ; DR    DL    UR    UL
        DATA >0101,>01FF,>FF01,>FEFF
 
 * Draw all non-player cars (offscreen to keep sprites from glitching too much)
+* R3 = number of sprites from DrawCars
 * Modifies R0,R5
 DrawPlaceHolders:
        LI R5,>C100   ; this will be offscreen
@@ -1385,8 +1386,6 @@ DrawPlaceHolders:
        DEC R3
        JNE -!
        
-       MOVB @R0LB,*R14
-       MOVB R0,*R14
        RT
 
 
@@ -3286,7 +3285,7 @@ FinishMusic:
 SilenceMusic:
        BYTE 2,>9F,>BF,0,0,0
 
-* Sounds in order from high to high priority
+* Sounds in order from high to low priority
 CrashSound:
        BCOPY 'sfx_2.dat'
        BYTE (MOTOR&>FF00)/>100,MOTOR&>FF
