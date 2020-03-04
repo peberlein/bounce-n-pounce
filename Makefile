@@ -24,10 +24,18 @@ all: bnp_8.bin
 bnp.rpk: layout.xml bnp_8.bin
 	zip -q $@ $^
 
-bnp_8.bin: bnp.asm bnp_data.asm bnp_seg.asm $(DATA) 
+bnp_8.bin: bnp.asm bnp_data.asm bnp_seg.asm $(DATA)
 	$(AS) -b -R $< -L bnp.lst
 	cat bnp_6000_b0.bin bnp_6000_b1.bin bnp_6000_b2.bin bnp_6000_b3.bin > $@
 	ls -l bnp_*.bin
+
+bnp_ea5.dsk: bnp_ea5.asm bnp_data.asm bnp_seg.asm $(DATA)
+	$(AS) -i -R $< -o BNP -L bnp_ea5.lst
+	$(DM) $@ --initialize DSSD -n BNP_EA5
+	$(DM) $@ -a BNP
+	$(DM) $@ -a BNQ
+	$(DM) $@ -a BNR
+	$(DM) $@ -a BNS
 
 bnp_chr.dat: bnp_new.mag
 	( \

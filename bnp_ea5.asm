@@ -1,7 +1,7 @@
 * Bounce'n'Pounce
 * Copyright 2020 Pete Eberlein
 
-       SAVE >6000,>8000  ; Assembler writes full 8K banks
+;       SAVE >6000,>8000  ; Assembler writes full 8K banks
 
 VDPWD  EQU  >8C00             ; VDP write data
 VDPWA  EQU  >8C02             ; VDP set read/write address
@@ -104,27 +104,8 @@ MOTORV BYTE 0,0,0,0   ; Volume byte, repeat byte zero, zero address
 RockRelativeToCar EQU ROCK1-(((ECAR1+2)/2)&>7FFF)
 
 
-       AORG >6000         ; Cartridge header in all banks
+       AORG >2000         ; low memory expansion
 
-*******************************************************************
-       BANK ALL
-*******************************************************************
-
-HEADER
-       BYTE >AA     ; Standard header
-       BYTE >01     ; Version number 1
-       BYTE >01     ; Number of programs (optional)
-       BYTE >00     ; Reserved (for FG99 this can be G,R,or X)
-       DATA >0000   ; Pointer to power-up list
-       DATA PRGLST  ; Pointer to program list
-       DATA >0000   ; Pointer to DSR list
-*      DATA >0000   ; Pointer to subprogram list (overlaps PRGLST)
-
-PRGLST DATA >0000   ; Next program list entry
-       DATA START   ; Program address
-*      BYTE         ; Length of name (STRI prepends the length byte)
-       STRI 'BOUNCE''N''POUNCE'
-       EVEN
 
 
 ; DONE finish line
@@ -148,27 +129,6 @@ PRGLST DATA >0000   ; Next program list entry
 
 
 
-BANK0  EQU >6000
-BANK1  EQU >6002
-BANK2  EQU >6004
-BANK3  EQU >6006
-
-
-BankSwitch1:
-       CLR @BANK1
-       B *R10
-
-BankSwitch2:
-       CLR @BANK2
-       B *R10
-
-BankSwitch3:
-       CLR @BANK3
-       B *R10
-
-BankSwitch0:
-       CLR @BANK0
-       B *R10
 
 ;* Copy R2 bytes from R1 to VDP address R0
 ;VDPW   MOVB @R0LB,*R14      ; Send low byte of VDP RAM write address
@@ -189,11 +149,6 @@ BankSwitch0:
 ;       RT
 
 START
-       CLR @>6000            ; switch to bank 0
-
-*******************************************************************
-       BANK 0
-*******************************************************************
 
        LWPI WRKSP             ; Load the workspace pointer to fast RAM
        LIMI 0                 ; Interrupts off
@@ -226,10 +181,9 @@ START
 
        ; Load sprite patterns
        LI R0,SPRPAT
-       LI R1,x#Sprites
+       LI R1,Sprites
        LI R2,256   ; 256 * 8 = 64 sprite patterns
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
 
        CLR @HSCORE
        CLR @HSCORE+2
@@ -258,7 +212,7 @@ GameRestart:
        LI R0,PatternTable+(0*28*8)
        MOV R0,@CURPAT
 
-       LI R1,x#Track   ;+(3*64)+40
+       LI R1,Track   ;+(3*64)+40
        MOV R1,@CURTRK        ; Track pointer in bank 1
 
        LI R0,>0500
@@ -277,7 +231,7 @@ SeasonRestart:
 
        CLR @SMASHD     ; Reset smashed cars to zero (and clear CURSEG)
 
-       LI R0,x#IntroMusic
+       LI R0,IntroMusic
        MOV R0,@MUSIC
        LI R0,>0100
        MOVB R0,@MUSICC
@@ -300,8 +254,7 @@ Restart:
        BL @PlayAudio
 
        ; Load initial segment table
-       LI R10,x#LoadSegmentData
-       BL @BankSwitch1
+       BL @LoadSegmentData
 
        BL @PlayAudio
 
@@ -346,8 +299,7 @@ Restart:
        CLR R7
        BL @LoadTileGroup
 
-       LI R10,x#StartMotor
-       BL @BankSwitch3
+       BL @StartMotor
 
        ; Draw initial screen
        LI R13,(7*8)*32
@@ -384,8 +336,7 @@ MainLoop:
        LI R1,2       ; Score 2 points for 8 rows, or 8 points per segment
        BL @AddScore
 
-       LI R10,x#LoadPartialSegment
-       BL @BankSwitch1
+       BL @LoadPartialSegment
 
        LI R5,PATTAB+>1000
        MOV @TG1,R6       ; new tilegroup
@@ -444,32 +395,32 @@ NoChange:
 
        CI R0,>6000/2+>8000
        JNE !
-       LI R1,x#Sprites+>A00
+       LI R1,Sprites+>A00
        B *R2
 !
        CI R0,>5000/2+>8000
        JNE !
-       LI R1,x#Sprites+>B00
+       LI R1,Sprites+>B00
        B *R2
 !
        CI R0,>4000/2+>8000
        JNE !
-       LI R1,x#Sprites+>C00
+       LI R1,Sprites+>C00
        B *R2
 !
        CI R0,>3000/2+>8000
        JNE !
-       LI R1,x#Sprites+>D00
+       LI R1,Sprites+>D00
        B *R2
 !
        CI R0,>2000/2+>8000
        JNE !
-       LI R1,x#Sprites+>E00
+       LI R1,Sprites+>E00
        B *R2
 !
        CI R0,>1000/2+>8000
        JNE !
-       LI R1,x#Sprites+>F00
+       LI R1,Sprites+>F00
        B *R2
 !
 
@@ -478,44 +429,44 @@ CRASHT EQU >7000     ; crash timer
        ; splash sprites
        CI R0,CRASHT/2+>8003
        JNE !
-       LI R1,x#Sprites+>1000
+       LI R1,Sprites+>1000
        B *R2
 !
        CI R0,CRASHT/2+>7C03
        JNE !
-       LI R1,x#Sprites+>1100
+       LI R1,Sprites+>1100
        B *R2
 !
        CI R0,CRASHT/2+>7803
        JNE !
-       LI R1,x#Sprites+>1200
+       LI R1,Sprites+>1200
        B *R2
 !
        CI R0,CRASHT/2+>7403
        JNE !
-       LI R1,x#Sprites+>1300
+       LI R1,Sprites+>1300
        B *R2
 !
 
        ; crash sprites
        CI R0,CRASHT/2+>8001
        JNE !
-       LI R1,x#Sprites+>1400
+       LI R1,Sprites+>1400
        B *R2
 !
        CI R0,CRASHT/2+>7C01
        JNE !
-       LI R1,x#Sprites+>1500
+       LI R1,Sprites+>1500
        B *R2
 !
        CI R0,CRASHT/2+>7801
        JNE !
-       LI R1,x#Sprites+>1600
+       LI R1,Sprites+>1600
        B *R2
 !
        CI R0,CRASHT/2+>7401
        JNE !
-       LI R1,x#Sprites+>1700
+       LI R1,Sprites+>1700
        B *R2
 !
 JumpSpritesDone:
@@ -569,8 +520,7 @@ Decel  CI R5,MINSPD      ; 48 (20) minimum speed
        DEC R5        ; Slow down
 SaveSpeed:
        MOV R5,@SPEED   ; Save speed
-       LI R10,x#SetMotor
-       BL @BankSwitch3
+       BL @SetMotor
 !
 
        LI R0,KeyFire
@@ -582,14 +532,13 @@ SaveSpeed:
 
        LI R7,>7801     ; 100ish Frames of jumping
        MOV R7,@CAR
-       LI R10,x#StopMotor
-       BL @BankSwitch3
+       BL @StopMotor
 
 
-       LI R10,x#JumpingSound
+       LI R10,JumpingSound
        BL @SetSound
 
-       LI R1,x#Sprites+>900
+       LI R1,Sprites+>900
        B @LoadJumpSprites
 !
 
@@ -660,8 +609,7 @@ SmashLandingDone:
        CI R7,>1000
        JHE !
        DEC @SPEED     ; Decrease speed by 32
-       LI R10,x#SetMotor
-       BL @BankSwitch3
+       BL @SetMotor
 !
        JMP DoneDriving
 
@@ -674,9 +622,7 @@ PlayerCrashed:
        JHE DoneDriving
 
        ; Rewind track to safety
-       LI R10,x#RewindSafely
-       BL @BankSwitch1
-
+       BL @RewindSafely
        B @GetReadyPlayer
 
 Driving:
@@ -774,7 +720,7 @@ DoneDriving:
 Warning:
        ANDI R0,>F000
        JNE !
-       LI R10,x#WarningBeep
+       LI R10,WarningBeep
        BL @SetSound
 !
 
@@ -971,19 +917,18 @@ DrawPlayerDone:
        JEQ NoCrash  ; Road clear
 Crash:
        LI R7,CRASHT+3  ; Crash for 192 frames (land)
-       LI R8,x#CrashSound
+       LI R8,CrashSound
        JMP CrashLand
 CrashWater:
        LI R7,CRASHT+7  ; Crash for 192 frames (water)
-       LI R8,x#SplashSound
+       LI R8,SplashSound
 CrashLand:
        MOV R7,@CAR     ; Store crash counter and crash bits
        MOV R8,@SOUND
        LI R8,>0100
        MOVB R8,@SOUNDC
        CLR @SPEED      ; set speed to zero
-       LI R10,x#StopMotor
-       BL @BankSwitch3
+       BL @StopMotor
 NoCrash:
 
 
@@ -1218,7 +1163,7 @@ DumpTruck:
        MOV R0,@RockRelativeToCar(R10)
 
        ; make sound
-       LI R10,x#DumpRockSound
+       LI R10,DumpRockSound
        BL @SetSound
 
        JMP AfterSpeed
@@ -1262,7 +1207,7 @@ SmashCarFuncNoScore:      ; call this with R1=0, R2=0
        BL @AddScore       ; Add R1 to score
        MOV R2,R11
 
-       LI R10,x#SmashSound
+       LI R10,SmashSound
        B @SetSound            ; return thru SetSound
 
 
@@ -1584,13 +1529,11 @@ SmashLanding:
        JL -!!
 
        ; TODO do island landing check
-       LI R10,x#IslandCheck
-       BL @BankSwitch1
+       BL @IslandCheck
        BL @AddScore
 
 SmashLandingExit:
-       LI R10,x#StartMotor
-       BL @BankSwitch3
+       BL @StartMotor
 
        B @SmashLandingDone
 
@@ -1706,7 +1649,7 @@ BounceCars:
        MOV R7,@-2(R6)  ; store new flags
 
        MOV R11,R7
-       LI R10,x#BounceSound
+       LI R10,BounceSound
        BL @SetSound
        MOV R7,R11
 
@@ -1724,14 +1667,13 @@ BounceRock:
        CI R4,CAR+2    ; if player, crash
        JNE !
        LI R7,CRASHT+3  ; Crash for 192 frames (land)
-       LI R8,x#CrashSound
+       LI R8,CrashSound
        MOV R7,@CAR     ; Store crash counter and crash bits
        MOV R8,@SOUND
        LI R8,>0100
        MOVB R8,@SOUNDC
        CLR @SPEED      ; set speed to zero
-       LI R10,x#StopMotor
-       B @BankSwitch3  ; return thru stop motor
+       B @StopMotor    ; return thru stop motor
 
 !
        ; a rock cannot hit its own dump truck
@@ -1887,8 +1829,7 @@ PlayAudio:
        JOC !
        RT
 !      ; and if so, then play sounds
-       LI R10,x#PlaySoundLists
-       B @BankSwitch3
+       B @PlaySoundLists ; return thru playsoundlists
 
 * Add R1 to score, giving extra life at every 30K
 * Modifes R1,R10
@@ -1911,7 +1852,7 @@ AddScore:
        AB R1,@LIVES
 
        ; play extra life sound
-       LI R10,x#ExLifeSound
+       LI R10,ExLifeSound
        ; JMP SetSound
 
 SetSound:
@@ -1948,17 +1889,15 @@ LoadCharData:
        MOV R11,R12      ; Save return address
 
        MOV R3,R0
-       LI R1,x#CharData
+       LI R1,CharData
        LI R2,96
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
 
        MOV R3,R0
        AI R0,CLRTAB-PATTAB
-       LI R1,x#CharData+(96*8)
+       LI R1,CharData+(96*8)
        LI R2,96
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
 
        B *R12        ; Return to saved address
 
@@ -2012,7 +1951,7 @@ GetReadyPlayer:
        B @SeasonRestart
 
 GameOver:
-       LI R0,x#SilenceMusic
+       LI R0,SilenceMusic
        MOV R0,@MUSIC
        LI R0,>0100
        MOVB R0,@MUSICC
@@ -2041,6 +1980,12 @@ GameOver:
 
 TitleScreen:
        BL @ClearScreen
+       
+       ; Load terminator into sprite list
+       LI R0,SPRTAB+VDPWM
+       MOVB @R0LB,*R14
+       MOVB R0,*R14
+       MOVB @Terminator,*R15
 
        ; Load pattern and color data in all 3 tables
        LI R3,PATTAB
@@ -2051,10 +1996,11 @@ TitleScreen:
        BL @LoadCharData
 
        LI R0,SCRTAB+(7*32)
-       LI R1,x#TitleText
+       LI R1,TitleText
        LI R2,(10*32)/8
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
+       
+       
 
 !      ; wait until fire button isn't pressed
        LI R2,1
@@ -2110,24 +2056,23 @@ NextSeason:
 
        ; Load special sprite for finish line
        LI R0,SPRPAT+(>40*8)
-       LI R1,x#Sprites+(>3C*8)   ; Spring
+       LI R1,Sprites+(>3C*8)   ; Spring
        LI R9,>400B             ; bright yellow
        MOV @CURPAT,R2
        CI R2,Spring
        JNE !
-       LI R1,x#Sprites+(>40*8)   ; Summer
+       LI R1,Sprites+(>40*8)   ; Summer
        LI R9,>4001             ; black
 !      CI R2,Summer
        JNE !
-       LI R1,x#Sprites+(>44*8)   ; Fall
+       LI R1,Sprites+(>44*8)   ; Fall
        LI R9,>4006             ; dark red
 !      CI R2,Fall
        JNE !
-       LI R1,x#Sprites+(>48*8)   ; Winter
+       LI R1,Sprites+(>48*8)   ; Winter
        LI R9,>4001             ; black
 !      LI R2,4           ; Copy one sprite (4*8 bytes)
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
 
        LI R0,VDPWM+SPRTAB+(3*4)+1
        MOVB @R0LB,*R14
@@ -2153,8 +2098,7 @@ FINISH EQU >1580
 
        LI R12,FINISH
 
-       LI R10,x#LoadFinishData
-       BL @BankSwitch1
+       BL @LoadFinishData
 
        ;LI R5,PATTAB+>1000 ; bottom
        ;MOV @TGNEW,R6     ; new tilegroup
@@ -2253,11 +2197,10 @@ FinishLoopDone:
        LI R13,FINISH
        BL @DrawFinishSprite
        BL @DrawStripLoop
-       LI R10,x#StopMotor
-       BL @BankSwitch3
+       BL @StopMotor
        BL @PlayAudio
 
-       LI R0,x#FinishMusic
+       LI R0,FinishMusic
        LI R1,>0100
        MOV R0,@MUSIC
        MOVB R1,@MUSICC
@@ -2274,9 +2217,9 @@ FinishLoopDone:
 
        ; next track (wrap at 8 to 3)
        MOV @CURTRK,R1
-       CI R1,x#Track+(8*64)-1
+       CI R1,Track+(8*64)-1
        JL !
-       LI R1,x#Track+(3*64)
+       LI R1,Track+(3*64)
 !
        MOV R1,@CURTRK
 
@@ -2501,8 +2444,7 @@ Delay
 !      TB 2                  ; CRU Address bit 0002 - VDP INT
        JEQ -!                ; Loop until set
 
-       LI R10,x#PlaySoundLists
-       BL @BankSwitch3
+       BL @PlaySoundLists
 
        DEC R2
        JNE -!!             ; Loop until R2 is zero
@@ -2614,13 +2556,11 @@ GoodLuckText:
 LoadJumpSprites:
        LI R0,SPRPAT+(>3C*8)
        LI R2,4*32/8
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
 
        LI R0,SPRPAT+(>BC*8)
        LI R2,4*32/8
-       LI R10,x#LoadSpriteData
-       BL @BankSwitch2
+       BL @LoadSpriteData
 
        B @JumpSpritesDone
 
@@ -2751,8 +2691,8 @@ DrawStripLoop:
 
        LI R6,48      ; 24 rows of left and right strips
        LI R1,R0LB    ; Used by DrawStrip
-       LI R7,x#LeftStrips
-       LI R8,x#LeftStrips ^ x#RightStrips
+       LI R7,LeftStrips
+       LI R8,LeftStrips ^ RightStrips
        LI R2,>AAAA   ; Bits toggle on-off for each iteration of DrawStrip
 
        B @DRWSCR     ; jump to DrawStripStart fast RAM
@@ -2771,7 +2711,7 @@ DrawStripSource:
        XORG DRWSCR
 * This will be copied into fast RAM
 DrawStripStart:
-       CLR @BANK1    ; Strip data in bank 1
+       EVEN
 DrawStripOuter:
        CLR R4
        MOVB *R5+,R4
@@ -2815,7 +2755,6 @@ DrawStrip: ; loop is unrolled 4 times
        DEC R6
        JNE DrawStripOuter
 
-       CLR @BANK0     ; Back to bank 0
        RT
 
 DrawStripEnd:
@@ -2825,7 +2764,7 @@ DSTPSZ EQU DrawStripEnd-DrawStripStart
 
 
 *******************************************************************
-       BANK 1       ; track segments transitions data
+       AORG >A000       ; track segments transitions data
 *******************************************************************
 LoadSegmentData:
        MOV R11,R10
@@ -2867,7 +2806,7 @@ LoadSegmentData:
        DEC R2
        JNE -!
 
-       JMP BankSwitch0
+       B *R10
 
 
 EndOfTrack:
@@ -2875,7 +2814,7 @@ EndOfTrack:
        MOVB R0,@CURSEG
        MOV @SEGBUF+>3A,@SEGBUF+>3E
 
-       JMP BankSwitch0
+       B *R10
 
 LoadPartialSegment:
        MOV R11,R10
@@ -2982,7 +2921,7 @@ SetNewTG:
 !
        MOV R1,@TGNEW
 
-       B @BankSwitch0
+       B *R10
 
 LoadFinishData:
        MOV R11,R10
@@ -3007,7 +2946,7 @@ RewindSafely:
        BL @CheckTrack
 
        MOV R0,@CURTRK
-       B @BankSwitch0
+       B *R10
 
 CheckTrack:
        MOV R0,R1
@@ -3107,7 +3046,7 @@ IslandCheck:
 
 IslandCheckDone:
        CLR R1     ; Set R1 to 1000 if landing on island
-       B @BankSwitch0
+       B *R10
 IslandBonus:
        LI R1,>4000+ScoreType  ; Score 1000 type
        MOV R1,@ECAR1      ; Overwrite enemy 1 too bad
@@ -3115,7 +3054,7 @@ IslandBonus:
        AI R1,>0020
        MOV R1,@ECAR1+2    ; Set score position
        LI R1,1000   ; Set R1 to 1000 if landing on island
-       B @BankSwitch0
+       B *R10
 
 
 
@@ -3123,7 +3062,7 @@ IslandBonus:
 
 
 *******************************************************************
-       BANK 2       ; sprites
+       AORG >C000   ; sprites
 *******************************************************************
 * Copy R2 * 8 bytes from bank 2 address R1 to VDP address R0
 LoadSpriteData:
@@ -3142,7 +3081,7 @@ LoadSpriteData:
        MOVB *R1+,*R15
        DEC R2
        JNE -!
-       JMP BankSwitch0
+       B *R10
 
 TitleText:
        BYTE 32,0,1,18,19,2,3,16,17,18,22,4,23,32,6,16,17,6,32,0,1,18,19,2,3,16,17,18,22,4,23,32
@@ -3165,7 +3104,7 @@ Sprites:
 
 
 *******************************************************************
-       BANK 3       ; sfx
+       AORG >E000       ; sfx
 *******************************************************************
 SNDREG EQU >8400
 
@@ -3189,7 +3128,7 @@ PlaySoundLists:
        MOV R0,@SOUND
        MOVB R1,@SOUNDC
 !
-       JMP BankSwitch0
+       B *R10
        
 PlaySoundList:
        AI R1,->100   ; decrement count until zero
@@ -3261,15 +3200,14 @@ SetMotor:
        C *R10,@MOTORA
        JNE !
        MOV R11,R10
-       B @BankSwitch0  ; return if no change
+       B *R10  ; return if no change
 !
        MOV *R10,@MOTORA
        JMP !
 StopMotor:
        LI R10,>FF00
        MOVB R10,@MOTORV
-!      LI R10,x#SetMotorSound
-       B @BankSwitch0
+!      B @SetMotorSound
 
 
 
