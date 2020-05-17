@@ -189,7 +189,7 @@ BankSwitch0:
 ;       RT
 
 START
-       CLR @>6000            ; switch to bank 0
+       CLR @BANK0            ; switch to bank 0
 
 *******************************************************************
        BANK 0

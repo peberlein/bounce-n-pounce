@@ -26,7 +26,8 @@ bnp.rpk: layout.xml bnp_8.bin
 
 bnp_8.bin: bnp.asm bnp_data.asm bnp_seg.asm $(DATA)
 	$(AS) -b -R $< -L bnp.lst
-	cat bnp_6000_b0.bin bnp_6000_b1.bin bnp_6000_b2.bin bnp_6000_b3.bin > $@
+	cat bnp_6000_b[0-3].bin > $@
+	#cat bnp_6000_b3.bin bnp_6000_b2.bin bnp_6000_b1.bin bnp_6000_b0.bin > bnp_9.bin
 	ls -l bnp_*.bin
 
 bnp_ea5.dsk: bnp_ea5.asm bnp_data.asm bnp_seg.asm $(DATA)

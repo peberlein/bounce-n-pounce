@@ -104,7 +104,7 @@ MOTORV BYTE 0,0,0,0   ; Volume byte, repeat byte zero, zero address
 RockRelativeToCar EQU ROCK1-(((ECAR1+2)/2)&>7FFF)
 
 
-       AORG >2000         ; low memory expansion
+       AORG >A000         ; high memory expansion
 
 
 
@@ -623,6 +623,7 @@ PlayerCrashed:
 
        ; Rewind track to safety
        BL @RewindSafely
+
        B @GetReadyPlayer
 
 Driving:
@@ -2761,11 +2762,8 @@ DrawStripEnd:
        EVEN
 DSTPSZ EQU DrawStripEnd-DrawStripStart
 
+       AORG DrawStripSource+DSTPSZ
 
-
-*******************************************************************
-       AORG >A000       ; track segments transitions data
-*******************************************************************
 LoadSegmentData:
        MOV R11,R10
 *      R1 = segment index to load from
@@ -3061,9 +3059,6 @@ IslandBonus:
        COPY 'bnp_data.asm'
 
 
-*******************************************************************
-       AORG >C000   ; sprites
-*******************************************************************
 * Copy R2 * 8 bytes from bank 2 address R1 to VDP address R0
 LoadSpriteData:
        MOV R11,R10
@@ -3104,7 +3099,7 @@ Sprites:
 
 
 *******************************************************************
-       AORG >E000       ; sfx
+       AORG >2000       ; sfx
 *******************************************************************
 SNDREG EQU >8400
 
